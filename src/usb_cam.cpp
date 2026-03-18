@@ -649,85 +649,48 @@ void UsbCam::grab_image()
 // enables/disables auto focus
 bool UsbCam::set_auto_focus(int value)
 {
+  return set_v4l_parameter(V4L2_CID_FOCUS_AUTO, value);
+}
+
+/**
+* Set video device parameter via direct V4L2 control ioctl.
+*
+* @param control_id The V4L2 control ID to set
+* @param value The value to assign
+*/
+bool UsbCam::set_v4l_parameter(__u32 control_id, int value)
+{
   struct v4l2_queryctrl queryctrl;
-  struct v4l2_ext_control control;
+  struct v4l2_control control;
 
   memset(&queryctrl, 0, sizeof(queryctrl));
-  queryctrl.id = V4L2_CID_FOCUS_AUTO;
+  queryctrl.id = control_id;
 
   if (-1 == usb_cam::utils::xioctl(m_fd, static_cast<int>(VIDIOC_QUERYCTRL), &queryctrl)) {
     if (errno != EINVAL) {
-      std::cerr << "VIDIOC_QUERYCTRL" << std::endl;
-      return false;
+      std::cerr << "VIDIOC_QUERYCTRL failed for control ID 0x" << std::hex << control_id <<
+        std::dec << std::endl;
     } else {
-      std::cerr << "V4L2_CID_FOCUS_AUTO is not supported" << std::endl;
-      return false;
+      std::cerr << "Control ID 0x" << std::hex << control_id << std::dec <<
+        " is not supported" << std::endl;
     }
+    return false;
   } else if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED) {
-    std::cerr << "V4L2_CID_FOCUS_AUTO is not supported" << std::endl;
+    std::cerr << "Control ID 0x" << std::hex << control_id << std::dec <<
+      " is disabled" << std::endl;
     return false;
   } else {
     memset(&control, 0, sizeof(control));
-    control.id = V4L2_CID_FOCUS_AUTO;
+    control.id = control_id;
     control.value = value;
 
     if (-1 == usb_cam::utils::xioctl(m_fd, static_cast<int>(VIDIOC_S_CTRL), &control)) {
-      std::cerr << "VIDIOC_S_CTRL" << std::endl;
+      std::cerr << "VIDIOC_S_CTRL failed for control ID 0x" << std::hex << control_id <<
+        std::dec << std::endl;
       return false;
     }
   }
   return true;
-}
-
-/**
-* Set video device parameter via call to v4l-utils.
-*
-* @param param The name of the parameter to set
-* @param param The value to assign
-*/
-bool UsbCam::set_v4l_parameter(const std::string & param, int value)
-{
-  char buf[33];
-  snprintf(buf, sizeof(buf), "%i", value);
-  return set_v4l_parameter(param, buf);
-}
-
-/**
-* Set video device parameter via call to v4l-utils.
-*
-* @param param The name of the parameter to set
-* @param param The value to assign
-*/
-bool UsbCam::set_v4l_parameter(const std::string & param, const std::string & value)
-{
-  int retcode = 0;
-  // build the command
-  std::stringstream ss;
-  ss << "v4l2-ctl --device=" << m_device_name << " -c " << param << "=" << value << " 2>&1";
-  std::string cmd = ss.str();
-
-  // capture the output
-  std::string output;
-  const int kBufferSize = 256;
-  char buffer[kBufferSize];
-  FILE * stream = popen(cmd.c_str(), "r");
-  if (stream) {
-    while (!feof(stream)) {
-      if (fgets(buffer, kBufferSize, stream) != NULL) {
-        output.append(buffer);
-      }
-    }
-    pclose(stream);
-    // any output should be an error
-    if (output.length() > 0) {
-      std::cout << output.c_str() << std::endl;
-      retcode = 1;
-    }
-  } else {
-    std::cerr << "usb_cam_node could not run '" << cmd.c_str() << "'" << std::endl;
-    retcode = 1;
-  }
-  return retcode;
 }
 
 }  // namespace usb_cam

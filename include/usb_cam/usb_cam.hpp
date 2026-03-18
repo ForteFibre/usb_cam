@@ -220,8 +220,7 @@ public:
   bool set_auto_focus(int value);
 
   // Set video device parameters
-  bool set_v4l_parameter(const std::string & param, int value);
-  bool set_v4l_parameter(const std::string & param, const std::string & value);
+  bool set_v4l_parameter(__u32 control_id, int value);
 
   void stop_capturing();
   void start_capturing();
