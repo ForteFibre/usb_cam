@@ -24,6 +24,8 @@
   <depend>rclcpp_components</depend>
 
   <depend>cv_bridge</depend>
+  <depend>diagnostic_msgs</depend>
+  <depend>diagnostic_updater</depend>
   <depend>std_msgs</depend>
   <depend>std_srvs</depend>
   <depend>sensor_msgs</depend>

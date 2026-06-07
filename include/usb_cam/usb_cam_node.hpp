@@ -27,7 +27,6 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-
 #ifndef USB_CAM__USB_CAM_NODE_HPP_
 #define USB_CAM__USB_CAM_NODE_HPP_
 
@@ -36,21 +35,19 @@
 #include <vector>
 
 #include "camera_info_manager/camera_info_manager.hpp"
+#include "diagnostic_updater/diagnostic_updater.hpp"
 #include "image_transport/image_transport.hpp"
 #include "rclcpp/rclcpp.hpp"
-#include "sensor_msgs/msg/image.hpp"
 #include "sensor_msgs/msg/compressed_image.hpp"
+#include "sensor_msgs/msg/image.hpp"
 #include "std_srvs/srv/set_bool.hpp"
-
 #include "usb_cam/usb_cam.hpp"
-
 
 std::ostream & operator<<(std::ostream & ostr, const rclcpp::Time & tm)
 {
   ostr << tm.nanoseconds();
   return ostr;
 }
-
 
 namespace usb_cam
 {
@@ -69,6 +66,7 @@ public:
   void publish();
   bool take_and_send_image();
   bool take_and_send_image_mjpeg();
+  void publish_camera_diag(diagnostic_updater::DiagnosticStatusWrapper & stat);
 
   rcl_interfaces::msg::SetParametersResult parameters_callback(
     const std::vector<rclcpp::Parameter> & parameters);
@@ -93,6 +91,12 @@ public:
 
   rclcpp::TimerBase::SharedPtr m_timer;
   rclcpp::TimerBase::SharedPtr m_publish_timer;
+  rclcpp::TimerBase::SharedPtr m_diagnostics_timer;
+  diagnostic_updater::Updater m_diagnostics_updater;
+  rclcpp::Time m_last_frame_time;
+  uint64_t m_frame_count;
+  double m_diagnostics_timeout_sec;
+  std::string m_last_error;
 
   rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr m_service_capture;
   rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr m_parameters_callback_handle;
