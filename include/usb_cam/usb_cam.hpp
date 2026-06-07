@@ -412,12 +412,38 @@ public:
       );
     }
 
+    const auto requested_framerate = static_cast<size_t>(parameters.framerate);
+    size_t closest_supported_framerate = 0;
+    size_t lowest_supported_framerate_above_request = 0;
+
     for (auto fmt : this->supported_formats()) {
       if (fmt.v4l2_fmt.width == static_cast<size_t>(parameters.image_width) &&
         fmt.v4l2_fmt.height == static_cast<size_t>(parameters.image_height) &&
         fmt.v4l2_fmt.pixel_format == found_driver_format->v4l2()) {
-        return fmt.v4l2_fmt.discrete.denominator / fmt.v4l2_fmt.discrete.numerator;
+        const auto supported_framerate =
+          fmt.v4l2_fmt.discrete.denominator / fmt.v4l2_fmt.discrete.numerator;
+        if (supported_framerate == requested_framerate) {
+          return supported_framerate;
+        }
+        if (supported_framerate < requested_framerate &&
+          supported_framerate > closest_supported_framerate)
+        {
+          closest_supported_framerate = supported_framerate;
+        }
+        if (supported_framerate > requested_framerate &&
+          (lowest_supported_framerate_above_request == 0 ||
+          supported_framerate < lowest_supported_framerate_above_request))
+        {
+          lowest_supported_framerate_above_request = supported_framerate;
+        }
       }
+    }
+
+    if (closest_supported_framerate > 0) {
+      return closest_supported_framerate;
+    }
+    if (lowest_supported_framerate_above_request > 0) {
+      return lowest_supported_framerate_above_request;
     }
 
     throw std::invalid_argument(
